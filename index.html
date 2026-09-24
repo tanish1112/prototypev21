@@ -18,6 +18,7 @@ p.s{margin:0 0 14px;color:var(--mut)}
 h2{font-size:13px;font-weight:600;color:var(--mut);margin:16px 0 6px;padding-top:10px;border-top:1px solid var(--ln)}
 button{font:inherit;color:inherit;background:transparent;border:1px solid var(--ln);border-radius:3px;padding:4px 10px;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:5px}.seg button.on{border-color:var(--ac);box-shadow:inset 0 -3px 0 var(--ac)}
 .reg{display:block;width:100%;text-align:left;margin-bottom:5px;padding:6px 10px}
 .reg small{display:block;color:var(--mut)}
 .reg.on{border-color:var(--ac);box-shadow:inset 3px 0 0 var(--ac)}
@@ -42,10 +43,12 @@ dt{color:var(--mut)}dd{margin:0;text-align:right;font-variant-numeric:tabular-nu
 <aside>
 <h1>Solar cold store</h1>
 <p class="s">Modular 3D reference model, North East India presets</p>
-<h2 style="border:0;margin-top:0;padding:0">Site region</h2><div id="regs"></div>
-<h2>Modules</h2>
+<h2 style="border:0;margin-top:0;padding:0">Design stage</h2><div class="seg" id="mode"><button data-m="0">Full design</button><button data-m="1">Prototype</button></div>
+<div id="regw"><h2>Site region</h2><div id="regs"></div></div>
+<div id="mods"><h2>Modules</h2>
 <div class="row">Cold-room modules (2.20 m each)<span><button data-k="n" data-d="-1">-</button><b id="vn"></b><button data-k="n" data-d="1">+</button></span></div>
 <div class="row">Crate layers<span><button data-k="ly" data-d="-1">-</button><b id="vly"></b><button data-k="ly" data-d="1">+</button></span></div>
+</div>
 <h2>Show</h2><div class="tg" id="tg"></div>
 <h2>Exploded view</h2><input type="range" id="ex" min="0" max="1.5" step="0.01" value="0" aria-label="Exploded view">
 <h2>Specification</h2><dl id="spec"></dl>
@@ -62,8 +65,8 @@ const R=[
 {n:'Meghalaya Plateau',s:'Khasi, Garo, Jaintia hills',amb:'20 to 26 °C, heavy rain',pl:.3,tilt:25,ins:.1,hood:1,flood:0,g:0x8d9a7b},
 {n:'Sikkim and Arunachal hills',s:'Cold nights, snow at altitude',amb:'8 to 20 °C',pl:.3,tilt:38,ins:.12,hood:0,flood:0,g:0xa2a7a8},
 {n:'Tripura and Barak Valley',s:'Humid southern plains',amb:'Up to 35 °C, monsoon floods',pl:.45,tilt:24,ins:.1,hood:0,flood:1,g:0xaea788}];
-const TG=[['pv','Solar PV'],['tk','Thermal battery'],['cp','Compressor'],['cr','Crates'],['cut','Section cut'],['lb','Part tags'],['dm','Dimensions']];
-const st={r:0,n:1,ly:3,pv:1,tk:1,cp:1,cr:1,cut:1,lb:1,dm:1,ex:0};
+const TG=[['pv','Solar PV'],['tk','Cold storage'],['cp','Cooling unit'],['cr','Crates'],['cut','Section cut'],['lb','Part tags'],['dm','Dimensions']];
+const st={mode:0,r:0,n:1,ly:1,pv:1,tk:1,cp:1,cr:1,cut:1,lb:1,dm:1,ex:0};
 const $=id=>document.getElementById(id),labs=$('labs');
 const cv=$('c'),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
 rd.shadowMap.enabled=true;rd.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -84,73 +87,93 @@ o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new
 function cvT(w,h,f){const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
 const pvTex=n=>cvT(n*160,256,(g,w,h)=>{g.fillStyle='#b9c4cc';g.fillRect(0,0,w,h);for(let p=0;p<n;p++){const x=p*160+4;g.fillStyle='#15294d';g.fillRect(x,4,152,h-8);g.strokeStyle='#4a6ea8';g.lineWidth=1;for(let i=1;i<10;i++){g.beginPath();g.moveTo(x+i*15.2,4);g.lineTo(x+i*15.2,h-4);g.stroke()}for(let j=1;j<6;j++){g.beginPath();g.moveTo(x,4+j*(h-8)/6);g.lineTo(x+152,4+j*(h-8)/6);g.stroke()}}});
 const tkTex=()=>cvT(256,160,(g,w,h)=>{g.fillStyle='#fff';g.textAlign='center';g.font='600 58px sans-serif';g.fillText('500 L',w/2,66);g.font='500 22px sans-serif';g.fillText('Water thermal',w/2,104);g.fillText('battery',w/2,132)});
+function proto(A,cm){
+const w=M(0xf4f3ee,{roughness:1}),al=M(0xaab3ba,{metalness:.6,roughness:.4}),dk=M(0x1c1f22),t=.025,b=new THREE.Group();root.add(b);
+const D=(a,c,tx)=>{root.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...c)]),lm));A(root,(a[0]+c[0])/2,(a[1]+c[1])/2,(a[2]+c[2])/2,tx,'d')};
+bx(b,.5,t,.3,0,t/2,0,w);bx(b,.5,t,.3,0,.3-t/2,0,w);bx(b,.5,.25,t,0,.15,-.15+t/2,w);bx(b,.5,.25,t,0,.15,.15-t/2,cm);bx(b,t,.25,.25,-.25+t/2,.15,0,w);
+const xw=.25-t/2;bx(b,t,.105,.25,xw,.2225,0,w);bx(b,t,.105,.25,xw,.0775,0,w);[-1,1].forEach(z=>bx(b,t,.04,.105,xw,.15,z*.0725,w));
+bx(b,.008,.05,.05,.221,.15,0,al);
+bx(b,.02,.028,.012,-.1,.17,-.119,M(0x2c86d1));bx(b,.012,.016,.0015,-.1,.172,-.11225,M(0x1a4d80));for(let k=0;k<4;k++)bx(b,.001,.012,.001,-.1+(k-1.5)*.004,.15,-.119,al);
+bx(b,.045,.01,.045,.12,.27,0,dk);fan(b,.019,.12,.264,0,Math.PI/2,0);
+A(b,-.1,.21,-.12,'DHT sensor','p');A(b,.12,.25,0,'Circulation fan','p');A(b,-.2,.02,.15,'Thermocol box','p');
+const gp=new THREE.Group();root.add(gp);ex.push([gp,new THREE.Vector3(),new THREE.Vector3(.25,0,0)]);
+if(st.cp){bx(gp,.025,.04,.04,.2375,.15,0,M(0xe0dccd));bx(gp,.012,.043,.043,.2375,.15,0,dk);bx(gp,.006,.05,.05,.253,.15,0,al);
+for(let k=0;k<9;k++)bx(gp,.025,.05,.003,.2685,.15,(k-4)*.0055,al);bx(gp,.01,.046,.046,.291,.15,0,dk);fan(gp,.018,.297,.15,0,0,Math.PI/2);
+A(gp,.29,.21,0,'Heat sink + fan','p');A(gp,.25,.09,0,'Peltier module','p')}
+const gS=new THREE.Group();root.add(gS);ex.push([gS,new THREE.Vector3(),new THREE.Vector3(0,.3,0)]);
+if(st.pv){const fr=M(0x3a4048),tx=cvT(400,240,(g,w,h)=>{g.fillStyle='#15294d';g.fillRect(0,0,w,h);g.strokeStyle='#4a6ea8';for(let i=1;i<10;i++){g.beginPath();g.moveTo(i*w/10,0);g.lineTo(i*w/10,h);g.stroke()}for(let j=1;j<6;j++){g.beginPath();g.moveTo(0,j*h/6);g.lineTo(w,j*h/6);g.stroke()}});
+const m=new THREE.Mesh(new THREE.BoxGeometry(.4,.012,.24),[fr,fr,new THREE.MeshStandardMaterial({map:tx,roughness:.3,metalness:.4}),fr,fr,fr]);m.position.y=.306;m.castShadow=true;gS.add(m);A(gS,-.12,.32,.1,'Solar panel','p')}
+D([-.25,.004,.21],[.25,.004,.21],'50 cm');D([-.31,0,.15],[-.31,.3,.15],'30 cm');D([-.31,.004,-.15],[-.31,.004,.15],'30 cm')}
 function build(){
 while(root.children.length)root.remove(root.children[0]);ex=[];fans=[];lb=[];labs.innerHTML='';
 const r=R[st.r],t=r.ins,W=1.75,H=2.4,n=st.n,x0=-(2.2*n+1.1)/2;L=2.2*n+1.1;y0=r.pl;
-const yb=y0+.15+t,yt=y0+H-t,yc=(yb+yt)/2,hw=yt-yb,dark=dk();
+const yb=y0+.15+t,yt=y0+.15+H-t,yc=(yb+yt)/2,hw=yt-yb,dark=dk();
 const wm=M(0xe6eaec,{roughness:.9}),cm=M(0xdde7ee,{roughness:.9,transparent:true,opacity:st.cut?.12:1,depthWrite:!st.cut}),yl=M(0xd6a23c),sl=M(0x59636d,{metalness:.5});
 lm.color.set(dark?0x8ea0ab:0x5b6b75);
 const A=(p,x,y,z,tx,c)=>{const o=new THREE.Object3D();o.position.set(x,y,z);p.add(o);const e=document.createElement('div');e.className=c;e.textContent=tx;labs.appendChild(e);lb.push([o,e])};
-const gd=new THREE.Mesh(new THREE.CircleGeometry(7.5,64),M(new THREE.Color(r.g).multiplyScalar(dark?.32:1),{roughness:1}));gd.rotation.x=-Math.PI/2;gd.receiveShadow=true;root.add(gd);
-const gr=new THREE.GridHelper(15,30,0x888888,0x888888);gr.position.y=.004;gr.material.transparent=true;gr.material.opacity=.22;root.add(gr);
+const gd=new THREE.Mesh(new THREE.CircleGeometry(st.mode?1.6:7.5,64),M(new THREE.Color(r.g).multiplyScalar(dark?.32:1),{roughness:1}));gd.rotation.x=-Math.PI/2;gd.receiveShadow=true;root.add(gd);
+const gr=new THREE.GridHelper(st.mode?3:15,30,0x888888,0x888888);gr.position.y=.004;gr.material.transparent=true;gr.material.opacity=.22;root.add(gr);
+const sz=st.mode?1.2:7;Object.assign(sun.shadow.camera,{left:-sz,right:sz,top:sz,bottom:-sz});sun.shadow.camera.updateProjectionMatrix();sun.shadow.normalBias=st.mode?.002:0;
+if(st.mode){L=.5;y0=0;proto(A,cm);px();spec(r,.025,.3);return}
 if(r.flood){const f=new THREE.Mesh(new THREE.PlaneGeometry(9,9),new THREE.MeshBasicMaterial({color:0x3f8fe0,transparent:true,opacity:.2,depthWrite:false,side:2}));f.rotation.x=-Math.PI/2;f.position.y=r.pl*.7;root.add(f)}
 [x0+.25,0,-x0-.25].forEach(x=>[-1,1].forEach(s=>bx(root,.34,r.pl,.34,x,r.pl/2,s*(W/2-.2),M(0x9b9a93))));
 [-1,1].forEach(s=>bx(root,L,.15,.1,0,y0+.075,s*(W/2-.08),sl));
 for(let i=0;i<n;i++){
 const g=new THREE.Group();root.add(g);ex.push([g,new THREE.Vector3(x0+1.1+2.2*i,0,0),new THREE.Vector3(i-(n-1)/2-.5,0,0)]);
-bx(g,2.2,t,W,0,y0+.15+t/2,0,wm);bx(g,2.2,t,W,0,y0+H-t/2,0,wm);bx(g,2.2,hw,t,0,yc,-W/2+t/2,wm);bx(g,2.2,hw,t,0,yc,W/2-t/2,cm);
+bx(g,2.2,t,W,0,y0+.15+t/2,0,wm);bx(g,2.2,t,W,0,y0+.15+H-t/2,0,wm);bx(g,2.2,hw,t,0,yc,-W/2+t/2,wm);bx(g,2.2,hw,t,0,yc,W/2-t/2,cm);
 if(i==0)bx(g,t,hw,W-2*t,-1.1+t/2,yc,0,wm);else[-1,1].forEach(s=>bx(g,.05,hw,.05,-1.1,yc,s*(W/2-t-.03),yl));
 if(i==n-1)bx(g,.06,hw,W-2*t,1.07,yc,0,yl);
-bx(g,.95,.3,.55,0,yt-.15,0,M(0xcdd4d9));fan(g,.19,-.24,yt-.31,0,Math.PI/2,0);fan(g,.19,.24,yt-.31,0,Math.PI/2,0);
-if(st.tk){pp(g,[[-1.1,yt-.1,.62],[1.1,yt-.1,.62]],0xc0392b);pp(g,[[-1.1,yt-.1,.67],[1.1,yt-.1,.67]],0x2f6fd0)}
+if(!st.mode){bx(g,.95,.3,.55,0,yt-.15,0,M(0xcdd4d9));fan(g,.19,-.24,yt-.31,0,Math.PI/2,0);fan(g,.19,.24,yt-.31,0,Math.PI/2,0)}
+if(st.tk&&!st.mode){pp(g,[[-1.1,yt-.1,.62],[1.1,yt-.1,.62]],0xc0392b);pp(g,[[-1.1,yt-.1,.67],[1.1,yt-.1,.67]],0x2f6fd0)}
 if(st.cr){const cb=new THREE.InstancedMesh(new THREE.BoxGeometry(.46,.4,.46),M(0x2e7d3c),12*st.ly),tm=new THREE.InstancedMesh(new THREE.SphereGeometry(.055,8,6),M(0xc9301f,{roughness:.4}),108),d=new THREE.Object3D();let k=0,j=0;
 for(let l=0;l<st.ly;l++)for(let a=0;a<4;a++)for(let b=0;b<3;b++){const cx=(a-1.5)*.52,cy=yb+.21+l*.42,cz=(b-1)*.5;d.position.set(cx,cy,cz);d.updateMatrix();cb.setMatrixAt(k++,d.matrix);
 if(l==st.ly-1)for(let u=0;u<3;u++)for(let v=0;v<3;v++){d.position.set(cx+(u-1)*.13,cy+.2,cz+(v-1)*.13);d.updateMatrix();tm.setMatrixAt(j++,d.matrix)}}
-cb.castShadow=tm.castShadow=true;g.add(cb,tm);if(i==0)A(g,0,yb+.4,W/2-.3,'Tomato crates, 250 kg','p')}
-if(i==0){A(g,0,yt-.4,0,'Evaporator + blower','p');A(g,-1.1,yc,0,Math.round(t*1000)+' mm insulation','p')}}
+cb.castShadow=tm.castShadow=true;g.add(cb,tm);if(i==0)A(g,0,yb+.4,W/2-.3,'Tomato crates','p')}
+if(i==0){if(!st.mode)A(g,0,yt-.4,0,'Evaporator + blower','p');A(g,-1.1,yc,0,Math.round(t*1000)+' mm insulation','p')}}
 const gs=new THREE.Group();root.add(gs);ex.push([gs,new THREE.Vector3(x0+2.2*n+.55,0,0),new THREE.Vector3(.9,0,0)]);
-bx(gs,1.1,t,W,0,y0+.15+t/2,0,wm);bx(gs,1.1,t,W,0,y0+H-t/2,0,wm);bx(gs,1.1,hw,t,0,yc,-W/2+t/2,wm);bx(gs,1.1,hw,t,0,yc,W/2-t/2,cm);bx(gs,t,hw,W-2*t,.55-t/2,yc,0,wm);
+bx(gs,1.1,t,W,0,y0+.15+t/2,0,wm);bx(gs,1.1,t,W,0,y0+.15+H-t/2,0,wm);bx(gs,1.1,hw,t,0,yc,-W/2+t/2,wm);bx(gs,1.1,hw,t,0,yc,W/2-t/2,cm);bx(gs,t,hw,W-2*t,.55-t/2,yc,0,wm);
 bx(gs,.22,.3,.08,.3,yb+1.3,-W/2+t+.04,M(0xb9c1c8));const led=new THREE.Mesh(new THREE.SphereGeometry(.014,8,8),new THREE.MeshBasicMaterial({color:0x35d06a}));led.position.set(.36,yb+1.4,-W/2+t+.085);gs.add(led);
 A(gs,.3,yb+1.5,-W/2+t+.06,'Control panel','p');
-if(st.tk){const bl=M(0x2a72d3,{roughness:.35,metalness:.2}),c=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,1.35,32),bl);c.position.set(-.05,yb+.68,-.1);c.castShadow=true;gs.add(c);
+if(!st.mode&&st.tk){const bl=M(0x2a72d3,{roughness:.35,metalness:.2}),c=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,1.35,32),bl);c.position.set(-.05,yb+.68,-.1);c.castShadow=true;gs.add(c);
 const dm=new THREE.Mesh(new THREE.SphereGeometry(.38,32,8,0,6.283,0,1.5708),bl);dm.scale.y=.4;dm.position.set(-.05,yb+1.35,-.1);gs.add(dm);
 const lp=new THREE.Mesh(new THREE.PlaneGeometry(.4,.25),new THREE.MeshBasicMaterial({map:tkTex(),transparent:true}));lp.position.set(-.05,yb+.75,.29);gs.add(lp);
 const pm=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.2,16),M(0x3b4652));pm.rotation.z=1.5708;pm.position.set(.32,yb+.1,.3);pm.castShadow=true;gs.add(pm);
 const mo=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.16,16),M(0x2a72d3));mo.rotation.z=1.5708;mo.position.set(.46,yb+.1,.3);gs.add(mo);
 pp(gs,[[-.05,yb+1.5,-.1],[-.05,yb+1.5,.62],[-.05,yt-.1,.62],[-.55,yt-.1,.62]],0xc0392b);pp(gs,[[.02,yb+1.45,-.1],[.02,yb+1.45,.67],[.02,yt-.1,.67],[-.55,yt-.1,.67]],0x2f6fd0);
 A(gs,-.05,yb+1.62,-.1,'500 L water thermal battery','p');A(gs,.36,yb+.26,.3,'Pump','p')}
-if(st.cp){const gc=new THREE.Group();root.add(gc);ex.push([gc,new THREE.Vector3(-x0+.25,y0+H-.75,0),new THREE.Vector3(1.6,0,0)]);
+if(st.cp&&!st.mode){const gc=new THREE.Group();root.add(gc);ex.push([gc,new THREE.Vector3(-x0+.25,y0+.15+H-.75,0),new THREE.Vector3(1.6,0,0)]);
 bx(gc,.34,.56,.72,0,0,0,M(0xdfe3e6));fan(gc,.24,.175,0,0,0,Math.PI/2);bx(gc,.22,.04,.55,-.24,-.32,0,sl);A(gc,.2,.32,0,'Outdoor compressor + condenser','p')}
-if(st.pv){const gp=new THREE.Group();root.add(gp);ex.push([gp,new THREE.Vector3(0,y0+H,0),new THREE.Vector3(0,1.4,0)]);
-const a=r.tilt*Math.PI/180,Wp=1.85,cw=Math.max(2,Math.round((L+.2)/1.1)),hc=.22+Wp*Math.sin(a)/2,fr=M(0x3a4048);
+if(st.pv){const gp=new THREE.Group();root.add(gp);ex.push([gp,new THREE.Vector3(0,y0+.15+H,0),new THREE.Vector3(0,1.4,0)]);
+const a=r.tilt*Math.PI/180,Wp=2,cw=Math.round(L/1.1),hc=.22+Wp*Math.sin(a)/2,fr=M(0x3a4048);
 const pm=new THREE.Mesh(new THREE.BoxGeometry(L+.2,.04,Wp),[fr,fr,new THREE.MeshStandardMaterial({map:pvTex(cw),roughness:.3,metalness:.4}),fr,fr,fr]);pm.position.y=hc;pm.rotation.x=a;pm.castShadow=true;gp.add(pm);
 [-1,1].forEach(sz=>[-(L/2-.2),0,L/2-.2].forEach(x=>{const z=sz*(W/2-.15),y=hc-z*Math.tan(a)-.03;bx(gp,.05,y,.05,x,y/2,z,sl)}));
 if(r.hood){const h=bx(gp,L+.5,.03,W+.5,0,.05,0,M(0x6d8090));h.rotation.x=.06}
 A(gp,L/2-.7,hc+.35,0,'Solar PV rack','p')}
 const dl=(a,b,tx)=>{root.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...a),new THREE.Vector3(...b)]),lm));A(root,(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2,tx,'d')};
-dl([x0,.01,W/2+.45],[-x0,.01,W/2+.45],L.toFixed(2)+' m');dl([x0-.45,y0,W/2],[x0-.45,y0+H,W/2],'2.40 m');dl([x0-.45,.01,-W/2],[x0-.45,.01,W/2],'1.75 m');
+dl([x0,.01,W/2+.45],[-x0,.01,W/2+.45],L.toFixed(2)+' m');dl([x0-.45,y0+.15,W/2],[x0-.45,y0+.15+H,W/2],'2.40 m');dl([x0-.45,.01,-W/2],[x0-.45,.01,W/2],'1.75 m');
 px();spec(r,t,W)}
 function px(){ex.forEach(([g,b,d])=>g.position.copy(b).addScaledVector(d,st.ex))}
-function spec(r,t,W){const c=12*st.ly*st.n,pa=(L+.2)*1.85;
-$('spec').innerHTML=[['Region',r.n],['Climate',r.amb],['Footprint',L.toFixed(2)+' x 1.75 m'],['Height',(2.4).toFixed(2)+' m + '+Math.round(r.pl*1000)+' mm plinth'],
-['Cold room inside',(2.2*st.n).toFixed(2)+' x '+(W-2*t).toFixed(2)+' m'],['Insulation',Math.round(t*1000)+' mm'],['PV tilt',r.tilt+'°'],['PV array','about '+pa.toFixed(1)+' m², '+(pa*.19).toFixed(1)+' kWp'],
-['Thermal battery','500 L water'],['Crates',c+' x 250 kg = '+(c*.25).toFixed(1)+' t'],['Rain hood',r.hood?'Fitted':'Not needed'],['Flood line',r.flood?'Plinth raised':'Not shown']].map(x=>'<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>').join('')}
+function spec(r,t,W){if(st.mode){$('spec').innerHTML=[['Stage','Prototype'],['Box','Thermocol, 50 x 30 x 30 cm'],['Cooling','Peltier module, heat sink + fan on the outside'],['Inside','DHT sensor, circulation fan'],['Power','Solar panel on top']].map(x=>'<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>').join('');return}const c=12*st.ly*st.n,cw=Math.round(L/1.1),m=st.mode?
+[['Stage','Prototype'],['Cooling','Peltier module, heat sinks + fans'],['Cold storage','PCM panels'],['Power','Solar panels, charge controller, battery'],['Control','Temperature + humidity sensor, microcontroller'],['PV',cw+' panels']]:
+[['Stage','Full design'],['Cooling','1.0 ton inverter split AC'],['Cold storage','500 L water battery'],['Power','Batteryless MPPT inverter, 12 V control battery'],['Control','ESP32 + SHT31 sensors'],['PV',cw+' x 450 W = '+(cw*.45).toFixed(2)+' kWp']];
+$('spec').innerHTML=[['Region',r.n],['Climate',r.amb],['Footprint',L.toFixed(2)+' x 1.75 m'],['Height','2.40 m + '+Math.round(r.pl*1000)+' mm plinth'],['Cold room inside',(2.2*st.n).toFixed(2)+' x '+(W-2*t).toFixed(2)+' x '+(2.4-2*t).toFixed(2)+' m'],['Insulation',Math.round(t*1000)+' mm'],['PV tilt',r.tilt+'°'],...m,['Crates',c+' crates, about '+Math.round(c*250/12)+' kg'],['Rain hood',r.hood?'Fitted':'Not needed'],['Flood line',r.flood?'Plinth raised':'Not shown']].map(x=>'<dt>'+x[0]+'</dt><dd>'+x[1]+'</dd>').join('')}
 /* camera */
 const sp={th:.75,phi:1.1,r:11},tg={th:.75,phi:1.1,r:11},ptr=new Map();
+const cl=r=>st.mode?Math.min(4,Math.max(.5,r)):Math.min(30,Math.max(4,r));
 const V={iso:[.75,1.1,1],front:[0,1.5,.85],top:[0,.06,1],end:[1.57,1.4,.85]};
-function view(k){const v=V[k];tg.th=v[0];tg.phi=v[1];tg.r=(7+L*1.05)*v[2]}
+function view(k){const v=V[k];tg.th=v[0];tg.phi=v[1];tg.r=(st.mode?1.5:7+L*1.05)*v[2]}
 cv.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,[e.clientX,e.clientY]);cv.setPointerCapture(e.pointerId)});
 cv.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;
 if(ptr.size==1){tg.th-=(e.clientX-p[0])*.008;tg.phi=Math.min(1.55,Math.max(.05,tg.phi-(e.clientY-p[1])*.008))}
-else if(ptr.size==2){const o=[...ptr.entries()].find(q=>q[0]!=e.pointerId)[1],d0=Math.hypot(p[0]-o[0],p[1]-o[1]),d1=Math.hypot(e.clientX-o[0],e.clientY-o[1]);tg.r=Math.min(30,Math.max(4,tg.r*d0/d1))}
+else if(ptr.size==2){const o=[...ptr.entries()].find(q=>q[0]!=e.pointerId)[1],d0=Math.hypot(p[0]-o[0],p[1]-o[1]),d1=Math.hypot(e.clientX-o[0],e.clientY-o[1]);tg.r=cl(tg.r*d0/d1)}
 ptr.set(e.pointerId,[e.clientX,e.clientY])});
 ['pointerup','pointercancel'].forEach(k=>cv.addEventListener(k,e=>ptr.delete(e.pointerId)));
-cv.addEventListener('wheel',e=>{e.preventDefault();tg.r=Math.min(30,Math.max(4,tg.r*(1+e.deltaY*.001)))},{passive:false});
-new ResizeObserver(()=>{const m=$('m');rd.setSize(m.clientWidth,m.clientHeight,false);cam.aspect=m.clientWidth/m.clientHeight;cam.updateProjectionMatrix();if(cam.aspect<1)tg.r=Math.max(tg.r,7+L*1.6)}).observe($('m'));
+cv.addEventListener('wheel',e=>{e.preventDefault();tg.r=cl(tg.r*(1+e.deltaY*.001))},{passive:false});
+new ResizeObserver(()=>{const m=$('m');rd.setSize(m.clientWidth,m.clientHeight,false);cam.aspect=m.clientWidth/m.clientHeight;cam.updateProjectionMatrix();if(cam.aspect<1)tg.r=Math.max(tg.r,st.mode?2.2:7+L*1.6)}).observe($('m'));
 const v3=new THREE.Vector3();
 function tick(){requestAnimationFrame(tick);
 for(const k in sp)sp[k]+=(tg[k]-sp[k])*.12;
-const ty=y0+1.1;cam.position.set(sp.r*Math.sin(sp.phi)*Math.sin(sp.th),ty+sp.r*Math.cos(sp.phi),sp.r*Math.sin(sp.phi)*Math.cos(sp.th));cam.lookAt(0,ty,0);
+const ty=y0+(st.mode?.15:1.1);cam.position.set(sp.r*Math.sin(sp.phi)*Math.sin(sp.th),ty+sp.r*Math.cos(sp.phi),sp.r*Math.sin(sp.phi)*Math.cos(sp.th));cam.lookAt(0,ty,0);
 fans.forEach(f=>f.rotation.z+=.25);
 const w=cv.clientWidth,h=cv.clientHeight;
 lb.forEach(([o,e])=>{o.getWorldPosition(v3).project(cam);e.style.transform='translate('+((v3.x*.5+.5)*w+8)+'px,'+((-v3.y*.5+.5)*h-8)+'px)'});
@@ -158,9 +181,10 @@ rd.render(sc,cam)}
 /* ui */
 $('regs').innerHTML=R.map((r,i)=>'<button class="reg" data-r="'+i+'"><b>'+r.n+'</b><small>'+r.s+'</small></button>').join('');
 $('tg').innerHTML=TG.map(x=>'<label><input type="checkbox" data-t="'+x[0]+'" checked>'+x[1]+'</label>').join('');
-function sync(){document.querySelectorAll('.reg').forEach((b,i)=>b.classList.toggle('on',i==st.r));$('vn').textContent=st.n;$('vly').textContent=st.ly}
+function sync(){$('mods').style.display=$('regw').style.display=st.mode?'none':'';document.querySelectorAll('#tg label').forEach(l=>{const t=l.firstChild.dataset.t;l.style.display=st.mode&&(t=='tk'||t=='cr')?'none':''});document.querySelectorAll('#mode button').forEach((b,i)=>b.classList.toggle('on',i==st.mode));document.querySelectorAll('.reg').forEach((b,i)=>b.classList.toggle('on',i==st.r));$('vn').textContent=st.n;$('vly').textContent=st.ly}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-if(b.dataset.r!=null){st.r=+b.dataset.r;build();sync()}
+if(b.dataset.m!=null){st.mode=+b.dataset.m;build();sync();view('iso')}
+else if(b.dataset.r!=null){st.r=+b.dataset.r;build();sync()}
 else if(b.dataset.k){st[b.dataset.k]=Math.min(3,Math.max(1,st[b.dataset.k]+ +b.dataset.d));build();sync();view('iso')}
 else if(b.dataset.v)view(b.dataset.v)});
 document.addEventListener('change',e=>{const t=e.target.dataset.t;if(!t)return;st[t]=e.target.checked?1:0;
